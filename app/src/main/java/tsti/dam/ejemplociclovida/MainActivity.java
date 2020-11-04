@@ -5,7 +5,12 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
+import android.graphics.Color;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -14,6 +19,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.nio.file.Files;
+import java.util.Arrays;
+import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
     public static final String TAG_APP = "APP_CICLO_VIDA";
@@ -22,10 +29,14 @@ public class MainActivity extends AppCompatActivity {
     Button btnSuma;
     Button btnReiniciar;
     Button btnIrAct02;
+    Button btnIniciarProceso, btnIniciarProceso2, btnIniciarProceso3;
 
-    TextView resultado;
+    TextView resultado, tvInfoProceso;
     EditText valor;
     Integer valorActual;
+
+    Handler miHandler;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(TAG_APP, "onCreate: ");
@@ -38,8 +49,42 @@ public class MainActivity extends AppCompatActivity {
         btnIrAct02 = findViewById(R.id.btnIrAct02);
         resultado = findViewById(R.id.resultado);
         valor = findViewById(R.id.ingresoValor);
+        btnIniciarProceso = findViewById(R.id.btnIniciarProceso);
+        btnIniciarProceso2= findViewById(R.id.btnIniciarProceso2);
+        btnIniciarProceso3 = findViewById(R.id.btnIniciarProceso3);
+        tvInfoProceso = findViewById(R.id.tvInfoProceso);
         valor.setText("1");
         resultado.setText(""+valorActual);
+
+        miHandler = new Handler(Looper.getMainLooper()){
+            @Override
+            public void handleMessage(@NonNull Message msg) {
+                switch (msg.what){
+                    case 1: // marca el inicio
+                        tvInfoProceso.setText("Proceso iniciado");
+                        tvInfoProceso.setTextColor(Color.RED);
+                        break;
+                    case 2: // marca el avacnce que inicio el procesamiento de un elmeento
+                        // en arg1 tengo el valor actual
+                        // en arg2 tengo el indice del valor actual
+                        // en obj tengo el total de elementos
+                        int actual = msg.arg1;
+                        int indiceActual = msg.arg2;
+                        String totalELementos = (String) msg.obj;
+                        tvInfoProceso.setText("Procesando elemento" +actual+" ( "+indiceActual+ " de "+ totalELementos+")");
+                        tvInfoProceso.setTextColor(Color.BLUE);
+                    case 3: // FIN
+                        tvInfoProceso.setText("Proceso FINALIZADO");
+                        tvInfoProceso.setTextColor(Color.GREEN);
+                    case 4: // finalizo un elmeento
+                        int actual2 = msg.arg1;
+                        int indiceActual2 = msg.arg2;
+                        String totalELementos2 = (String) msg.obj;
+                        tvInfoProceso.setText("Termino de procesar elemento" +actual2+" ( "+indiceActual2+ " de "+ totalELementos2+ ")");
+                        tvInfoProceso.setTextColor(Color.CYAN);
+                }
+            }
+        };
 
         btnResta.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -86,6 +131,107 @@ public class MainActivity extends AppCompatActivity {
                 Intent i1 = new Intent(MainActivity.this, Pantalla02Activity.class);
                 i1.putExtra("PARAM2",valorActual);
                 startActivityForResult(i1,1000);
+            }
+        });
+
+
+        // sin usar handler
+        btnIniciarProceso.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                tvInfoProceso.setText("Arranca proceso....");
+                int[] miArreglo = new int[100];
+                Random r = new Random();
+                for(int x =0;x<miArreglo.length;x++){
+                    miArreglo[x] = r.nextInt();
+                }
+                int i= 0;
+
+                for(long unValor: miArreglo){
+                    tvInfoProceso.setText("procesando..."+unValor);
+                    try {
+                        Log.d(TAG_APP, "procesar: "+unValor+ " ( "+i+" de ");
+
+                        Thread.currentThread().sleep(100);
+                        tvInfoProceso.setText("termino de procesar..."+unValor+ " ( "+i+" de 100)");
+                        Thread.currentThread().sleep(30);
+                        i++;
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                tvInfoProceso.setText("FIN...");
+            }
+        });
+
+        // USANDO HANDLER
+
+        // sin usar handler
+        btnIniciarProceso2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                tvInfoProceso.setText("Preparando para arrancar");
+                // crear el hilo secundario
+                Runnable miHiloSecundario = new Runnable() {
+                    @Override
+                    public void run() {
+                        int[] miArreglo = new int[100];
+                        Random r = new Random();
+                        for(int x =0;x<miArreglo.length;x++){
+                            miArreglo[x] = r.nextInt();
+                        }
+                        int i= 0;
+                        // enviamos un mensaje para actualizar la pantalla que estamos arrancando
+                        Message miMensajeArranque = miHandler.obtainMessage();
+                        miMensajeArranque.what = 1;
+                        miHandler.sendMessage(miMensajeArranque);
+                        for(int unValor: miArreglo){
+                            // enviamos un mensaje para actualizar la pantalla que estamos arrancando
+                            Message mensajeProcesamiento = miHandler.obtainMessage();
+                            mensajeProcesamiento.what = 2;
+                            mensajeProcesamiento.arg1 = unValor;
+                            mensajeProcesamiento.arg2 = i;
+                            mensajeProcesamiento.obj = "100";
+                            miHandler.sendMessage(mensajeProcesamiento);
+                            /// tvInfoProceso.setText("procesando..."+unValor);
+                            try {
+                                Log.d(TAG_APP, "procesar: "+unValor+ " ( "+i+" de ");
+
+                                Thread.currentThread().sleep(100);
+                                Message mensajeProcesamiento2 = miHandler.obtainMessage();
+                                mensajeProcesamiento2.what = 4;
+                                mensajeProcesamiento2.arg1 = unValor;
+                                mensajeProcesamiento2.arg2 = i;
+                                mensajeProcesamiento2.obj = "100";
+                                miHandler.sendMessage(mensajeProcesamiento2);
+                                //vInfoProceso.setText("termino de procesar..."+unValor+ " ( "+i+" de 100)");
+                                Thread.currentThread().sleep(30);
+                                i++;
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        Message mensajeFin = miHandler.obtainMessage();
+                        mensajeFin.what = 3;
+                        miHandler.sendMessage(mensajeFin);
+ //                       tvInfoProceso.setText("FIN...");
+                    }
+                };
+                Thread miThreadSecundario = new Thread(miHiloSecundario);
+                miThreadSecundario.start();
+            }
+        });
+
+        btnIniciarProceso3.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Integer[] miArreglo = new Integer[100];
+                Random r = new Random();
+                for (int x = 0; x < miArreglo.length; x++) {
+                    miArreglo[x] = r.nextInt();
+                };
+                MiTareaAsincroncia miTareaAsincroncia = new MiTareaAsincroncia();
+                miTareaAsincroncia.execute(miArreglo);
             }
         });
     }
@@ -156,4 +302,49 @@ public class MainActivity extends AppCompatActivity {
         outState.putBoolean("BTN_SUMAR_HABILITADO",btnSuma.isEnabled());
         outState.putBoolean("BTN_RESTAR_HABILITADO",btnResta.isEnabled());
     }
+
+    class MiTareaAsincroncia extends AsyncTask<Integer,String,Integer> {
+        @Override
+        protected Integer doInBackground(Integer... valores) {
+
+            int i = 0;
+            for (int unValor : valores) {
+                /// tvInfoProceso.setText("procesando..."+unValor);
+                try {
+                    Log.d(TAG_APP, "procesar: " + unValor + " ( " + i + " de ");
+                    publishProgress(""+unValor,""+i,"100");
+
+                    Thread.currentThread().sleep(100);
+                    //vInfoProceso.setText("termino de procesar..."+unValor+ " ( "+i+" de 100)");
+                    Thread.currentThread().sleep(30);
+                    i++;
+
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            return i;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            tvInfoProceso.setText("Proceso iniciado ASYNC");
+            tvInfoProceso.setTextColor(Color.RED);
+        }
+
+        @Override
+        protected void onPostExecute(Integer integer) {
+            super.onPostExecute(integer);
+            tvInfoProceso.setText("Proceso FINALIZADO ASYNC");
+            tvInfoProceso.setTextColor(Color.GREEN);
+        }
+
+        @Override
+        protected void onProgressUpdate(String... values) {
+            super.onProgressUpdate(values);
+            tvInfoProceso.setText("Procesando ASYNC elemento" +values[0]+" ( "+values[1]+ " de "+ values[2]+")");
+            tvInfoProceso.setTextColor(Color.BLUE);
+        }
+    };
 }

@@ -44,4 +44,25 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Ir actividad 02" />
+
+    <Button
+        android:id="@+id/btnIniciarProceso"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Iniciar Proceso Pesado" />
+    <Button
+        android:id="@+id/btnIniciarProceso2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Iniciar Proceso Pesado con Handlers" />
+    <Button
+        android:id="@+id/btnIniciarProceso3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Proceso Pesado con AsyncTask" />
+    <TextView
+        android:id="@+id/tvInfoProceso"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+    </TextView>
 </LinearLayout>
